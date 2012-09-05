@@ -492,16 +492,31 @@ $.extend($.validator, {
 			this.toHide = this.errorsFor(element);
 		},
 
+		elementValue: function( element ) {
+			var type = $(element).attr('type'),
+				val = $(element).val();
+	
+			if ( type === 'radio' || type === 'checkbox' ) {
+				return $('input[name="' + $(element).attr('name') + '"]:checked').val();
+			}
+	
+			if ( typeof val === 'string' ) {
+				return val.replace(/\r/g, "");
+			}
+			return val;
+		},
+	
 		check: function( element ) {
 			element = this.validationTargetFor( this.clean( element ) );
-
+	
 			var rules = $(element).rules();
 			var dependencyMismatch = false;
+			var val = this.elementValue(element);
 			for (var method in rules ) {
 				var rule = { method: method, parameters: rules[method] };
 				try {
-					var result = $.validator.methods[method].call( this, element.value.replace(/\r/g, ""), element, rule.parameters );
-
+					var result = $.validator.methods[method].call( this, val, element, rule.parameters );
+	
 					// if a method indicates that the field is optional and therefore valid,
 					// don't mark it as valid when there are no other rules
 					if ( result == "dependency-mismatch" ) {
@@ -509,12 +524,12 @@ $.extend($.validator, {
 						continue;
 					}
 					dependencyMismatch = false;
-
+	
 					if ( result == "pending" ) {
 						this.toHide = this.toHide.not( this.errorsFor(element) );
 						return;
 					}
-
+	
 					if( !result ) {
 						this.formatAndAdd( element, rule );
 						return false;
@@ -723,8 +738,9 @@ $.extend($.validator, {
 			}
 		},
 
+		// Fix to use val method on optional method too validation on required fields when they contains its mask
 		optional: function(element) {
-			return !$.validator.methods.required.call(this, $.trim(element.value), element) && "dependency-mismatch";
+			return !$.validator.methods.required.call(this, $.trim(this.elementValue(element)), element) && "dependency-mismatch";
 		},
 
 		startRequest: function(element) {
